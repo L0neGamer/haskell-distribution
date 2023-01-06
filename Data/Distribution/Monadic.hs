@@ -22,25 +22,24 @@ import Data.Distribution.Core
 
 -- | Monadic description of distributions.
 data Experiment a where
-  Return :: a -> Experiment a
-  Bind :: Experiment b -> (b -> Experiment a) -> Experiment a
-  Prim :: (Ord a) => Distribution a -> Experiment a
+  Return :: !a -> Experiment a
+  Bind :: !(Experiment b) -> (b -> Experiment a) -> Experiment a
+  Prim :: (Ord a) => !(Distribution a) -> Experiment a
 
 instance Functor Experiment where
-  fmap f d = Bind d (\ x -> Return (f x))
+  fmap f d = Bind d (Return . f)
 
 instance Applicative Experiment where
-  pure x = Return x
-  df <*> d = Bind df (\ f -> Bind d (\ x -> Return (f x)))
+  pure = Return
+  df <*> d = Bind df (\ f -> Bind d (Return . f))
 
 instance Monad Experiment where
-  return x = Return x
   d >>= f = Bind d f
 
 -- | Converts a concrete distribution into its
 --   monadic representation.
 from :: (Ord a) => Distribution a -> Experiment a
-from d = Prim d
+from = Prim
 
 -- | Converts the monadic description of the distribution 
 --   to a concrete distribution.
