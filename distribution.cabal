@@ -62,6 +62,8 @@ library
   build-depends:       array >=0.4,
                        base >=4.5 && <5,
                        containers ==0.6.*,
+                       strict-containers ==0.2,
+                       strict >=0.4,
                        MonadRandom >=0.4,
                        random ==1.2.*
 

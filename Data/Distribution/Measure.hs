@@ -46,7 +46,7 @@ import Data.Distribution.Core
 --
 --   Takes @O(n)@ time. See 'probabilityAt' and 'probabilityIn'
 --   for a more efficient ways to query elements and ranges.
-probability :: (a -> Bool) -> Distribution a -> Probability
+probability :: Ord a => (a -> Bool) -> Distribution a -> Probability
 probability f = sum . Map.elems . Map.filterWithKey (const . f) . toMap
 
 -- | Probability of a given value.

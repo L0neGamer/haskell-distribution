@@ -52,12 +52,13 @@ module Data.Distribution.Core
 import Control.Arrow (second)
 import qualified Data.Function as F
 import Data.List (tails, groupBy, sortBy, find)
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Data.Monoid
 import Data.Ord (comparing)
 import Data.Set (Set)
+import qualified Data.Strict.Map as Map
+import qualified Data.Strict as Strict
+import qualified Data.Map as Lazy.Map
 
 
 -- | Probability. Should be between 0 and 1.
@@ -71,11 +72,14 @@ type Probability = Rational
 --   and 'always' and 'andThen' are respectively the equivalent of @return@
 --   and @>>=@.
 newtype Distribution a = Distribution
-    { toMap :: Map a Probability
+    { _toMap :: Map.Map a Probability
       -- ^ Converts the distribution to a mapping from values to their
       --   probability. Values with probability @0@ are not included
       --   in the resulting mapping.
     } deriving Eq
+
+toMap :: Ord a => Distribution a -> Lazy.Map.Map a Probability
+toMap = Strict.toLazy . _toMap
 
 instance Show a => Show (Distribution a) where
     show d = "fromList " ++ show (toList d)
@@ -189,11 +193,11 @@ toList (Distribution xs) = Map.toAscList xs
 -- | Returns the number of elements with non-zero probability
 --   in the distribution.
 size :: Distribution a -> Int
-size = Map.size . toMap
+size = Map.size . _toMap
 
 -- | Values in the distribution with non-zero probability.
 support :: Distribution a -> Set a
-support = Map.keysSet . toMap
+support = Map.keysSet . _toMap
 
 
 -- Creation
@@ -332,7 +336,7 @@ trials n d = Distribution $ Map.fromDistinctAscList $ if
     | p == 0    -> [(0, 1)]
     | otherwise -> zip outcomes probs
   where
-    p = fromMaybe 0 $ Map.lookup True $ toMap d
+    p = fromMaybe 0 $ Map.lookup True $ _toMap d
     q = 1 - p
 
     ps = take (n + 1) $ iterate (* p) 1
@@ -368,7 +372,7 @@ n `times` d
         _ -> error "times: size seems not to be properly defined."
     | otherwise = mult n
   where
-    s = Map.size $ toMap d
+    s = Map.size $ _toMap d
     n' = fromInteger $ toInteger n
     go a b k = k' * a + (n' - k') * b
       where
@@ -417,7 +421,7 @@ andThen :: Ord b => Distribution a -> (a -> Distribution b) -> Distribution b
 andThen (Distribution xs) f = Distribution $
     Map.unionsWith (+) $ fmap go $ Map.toList xs
   where
-    go (x, p) = fmap (* p) $ toMap $ f x
+    go (x, p) = fmap (* p) $ _toMap $ f x
 
 
 -- | Determines if a distribution is valid.
